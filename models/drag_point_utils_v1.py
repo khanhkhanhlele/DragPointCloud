@@ -218,7 +218,7 @@ class LION(object):
 
         
 
-        for e in range(12):  # epoch loop
+        for e in range(13):  # epoch loop
             count = 0
             optimizer.zero_grad()  
             all = []
@@ -239,7 +239,7 @@ class LION(object):
                         x_noisy = self.scheduler.step(noise_pred, t, x_noisy).prev_sample
 
                     # Start calculating loss from step 44
-                    if i >= 44:
+                    if i >= 44 and i < 49:
                         count += 1
                         
                         
@@ -289,13 +289,14 @@ class LION(object):
                             # loss4 = F.mse_loss(v[~mask], torch.zeros_like(v[~mask]))
                             loss5 = F.mse_loss(v[~mask], v_gt[~mask])
                             loss6 = F.l1_loss(10*torch.norm(v[mask],dim=1), torch.norm(d[mask], dim=1))
-                            # print(f"loss1: {loss1} \t loss2: {loss2} \t loss4: {loss4} \t loss5: {loss5} \t loss6: {loss6}")
+                            print(f"loss2: {loss2} \t \t loss5: {loss5} \t loss6: {loss6}")
                             # loss = loss +  loss2# + loss6
                             # loss = loss + loss2 
-                            if i % 2 == 0:
-                                loss = loss + loss2
-                            else:
-                                loss = loss + loss5
+                            # if i % 2 == 0:
+                            #     loss = loss + loss2
+                            # else:
+                            #     loss = loss + loss6 
+                            loss = loss + 0.9 * loss2 + loss5 * 1000
                     all.append(x_noisy)
 
             loss = loss / count
