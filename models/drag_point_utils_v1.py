@@ -216,7 +216,10 @@ class LION(object):
         optimizer = torch.optim.Adam([x_noisy_0], lr=0.05)
         scaler = torch.cuda.amp.GradScaler()
 
+        
+
         for e in range(12):  # epoch loop
+            count = 0
             optimizer.zero_grad()  
             all = []
             loss = torch.tensor(0.0, device=x_noisy_0.device, requires_grad=False)  # Tích lũy loss cho toàn bộ các bước
@@ -236,7 +239,8 @@ class LION(object):
                         x_noisy = self.scheduler.step(noise_pred, t, x_noisy).prev_sample
 
                     # Start calculating loss from step 44
-                    if i >= 40:
+                    if i >= 44:
+                        count += 1
                         
                         
                         t_prev_tensor = torch.ones(num_samples, dtype=torch.int64, device='cuda') * (t + 2)
@@ -284,13 +288,17 @@ class LION(object):
 
                             # loss4 = F.mse_loss(v[~mask], torch.zeros_like(v[~mask]))
                             loss5 = F.mse_loss(v[~mask], v_gt[~mask])
-                            # loss6 = F.l1_loss(10*torch.norm(v[mask],dim=1), torch.norm(d[mask], dim=1))
+                            loss6 = F.l1_loss(10*torch.norm(v[mask],dim=1), torch.norm(d[mask], dim=1))
                             # print(f"loss1: {loss1} \t loss2: {loss2} \t loss4: {loss4} \t loss5: {loss5} \t loss6: {loss6}")
                             # loss = loss +  loss2# + loss6
-                            loss = loss + loss2 
+                            # loss = loss + loss2 
+                            if i % 2 == 0:
+                                loss = loss + loss2
+                            else:
+                                loss = loss + loss5
                     all.append(x_noisy)
 
-            loss = loss / 10.
+            loss = loss / count
             print(f"loss: {loss}")
             scaler.scale(loss).backward(retain_graph=True)
             scaler.step(optimizer)
