@@ -128,7 +128,9 @@ class LION(object):
         #ddim inverse
         
         with torch.no_grad():
-            point_cloud = torch.load('point_cloud_no_drag.pt')
+            # point_cloud = torch.load('point_cloud_no_drag.pt')
+            point_cloud = torch.load('lion_ckpt/unconditional/airplane/samples.pt').to('cuda')
+            point_cloud = point_cloud[3].unsqueeze(0).to('cuda')
             _, _, latent_list = self.vae.encode(point_cloud)
             latents = latent_list[-1][0]
             # latents = torch.load('all_tensor_list.pt')[-1]
@@ -180,8 +182,8 @@ class LION(object):
                     num_points = v.shape[0]
 
                     print("START")
-                    anchor_points = [torch.tensor([-1, 2.21, -0.5]).to(x_noisy.device)]
-                    target_points = [torch.tensor([-2, 2.21, -0.5]).to(x_noisy.device)]
+                    anchor_points = [torch.tensor([-2.58, -0.08, 0.58]).to(x_noisy.device)]
+                    target_points = [torch.tensor([-2.58, 0.5, 0.58]).to(x_noisy.device)]
                     
                     ##
                     # initial_shape = x_noisy.shape

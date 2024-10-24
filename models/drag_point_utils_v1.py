@@ -157,13 +157,15 @@ class LION(object):
 
         #Prepare anchor point list
 
-        anchor_points_user = [torch.tensor([-0.9, 2.0, 0.3]).to('cuda')]
-        target_points = [torch.tensor([-0.9, 2.5, 0.3]).to('cuda')]
+        anchor_points_user = [torch.tensor([1.8, -0.24, 0.22]).to('cuda')]
+        target_points = [torch.tensor([2., -0.18, 0.22]).to('cuda')]
 
         #ddim inverse
         
         with torch.no_grad():
-            point_cloud = torch.load('point_cloud_no_drag.pt')
+            # point_cloud = torch.load('point_cloud_no_drag.pt')
+            point_cloud = torch.load('lion_ckpt/unconditional/airplane/samples.pt').to('cuda')
+            point_cloud = point_cloud[6].unsqueeze(0).to('cuda')
             anchor_points_index_list = get_index_nearest_anchor(anchor_points_user, point_cloud, 0.5)
             # import pdb; pdb.set_trace()
             anchor_points = [point_cloud[0][i] for i in anchor_points_index_list]
@@ -209,7 +211,7 @@ class LION(object):
         optimizer = torch.optim.Adam([x_noisy_0], lr=0.05)
         scaler = torch.cuda.amp.GradScaler()
 
-        for e in range(17):  # epoch loop
+        for e in range(15):  # epoch loop
             optimizer.zero_grad()  
             all = []
             loss = torch.tensor(0.0, device=x_noisy_0.device, requires_grad=False)  # Tích lũy loss cho toàn bộ các bước
@@ -229,7 +231,8 @@ class LION(object):
                         x_noisy = self.scheduler.step(noise_pred, t, x_noisy).prev_sample
 
                     # Start calculating loss from step 44
-                    if i >= 40:
+                    if i >= 44:
+                        
                         
                         t_prev_tensor = torch.ones(num_samples, dtype=torch.int64, device='cuda') * (t + 2)
                         noise_prev_pred = local_prior(x=x_noisy, t=t_prev_tensor.float(), 
@@ -275,7 +278,7 @@ class LION(object):
                             loss5 = F.mse_loss(v[~mask], v_gt[~mask])
                             loss6 = F.l1_loss(10*torch.norm(v[mask],dim=1), torch.norm(d[mask], dim=1))
                             print(f"loss1: {loss1} \t loss2: {loss2} \t loss4: {loss4} \t loss5: {loss5} \t loss6: {loss6}")
-                            loss = loss +  loss2 #+ 4*loss6
+                            loss = loss +  loss2# + loss6
                             print(f"loss: {loss}")
                     all.append(x_noisy)
 

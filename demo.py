@@ -18,15 +18,15 @@ from models.drag_point_utils_v1 import LION
 from utils.vis_helper import plot_points
 from huggingface_hub import hf_hub_download 
 
-model_path = './lion_ckpt/text2shape/chair/checkpoints/model.pt'
-model_config = './lion_ckpt/text2shape/chair/cfg.yml'
+model_path = 'lion_ckpt/unconditional/airplane/checkpoints/model.pt'
+model_config = 'lion_ckpt/unconditional/airplane/cfg.yml'
 
 config.merge_from_file(model_config)
 lion = LION(config)
 lion.load_model(model_path)
 
 if config.clipforge.enable:
-    input_t = ["a swivel chair, five wheels"] 
+    input_t = ["a car"] 
     device_str = 'cuda'
     clip_model, clip_preprocess = clip.load(
                         config.clipforge.clip_model, device=device_str)    

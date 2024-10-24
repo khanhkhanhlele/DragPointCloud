@@ -14,3 +14,4 @@ data/
 datasets/test_data
 .env/
 results/
+*.pt

@@ -163,7 +163,7 @@ class LION(object):
 
         with torch.no_grad():
             # point_cloud = torch.load('point_cloud.pt')
-            point_cloud = torch.load('lion_ckpt/samples_for_paper_table/table_3/dpm/chair/samples_64799s1H68e88ode1.pt').to(device)
+            point_cloud = torch.load('lion_ckpt/unconditional/airplane/samples.pt').to(device)
             point_cloud = point_cloud[index].unsqueeze(0).to(device)
             #anchor_points_index_list = get_index_nearest_anchor(anchor_points_user, point_cloud, 0.5)
             #anchor_points = [point_cloud[0][i] for i in anchor_points_index_list]
@@ -208,7 +208,7 @@ class LION(object):
         optimizer = torch.optim.Adam([x_noisy_0], lr=0.05)
         scaler = torch.cuda.amp.GradScaler()
 
-        for e in range(10):  # epoch loop
+        for e in range(5):  # epoch loop
             optimizer.zero_grad()  # Reset gradients each epoch
             all = []
             loss = torch.tensor(0.0, device=x_noisy_0.device, requires_grad=False)  # Tích lũy loss cho toàn bộ các bước
@@ -227,9 +227,10 @@ class LION(object):
                         x_noisy = self.scheduler.step(noise_pred, t, x_noisy).prev_sample
 
                     # Start calculating loss from step 44
-                    if i >= 44:
+                    drag = True
+                    if i >= 44 and drag == True:
                         for epoch in range(1):
-                            
+                            print(f"step: {i}, epoch: {e}")
                             t_prev_tensor = torch.ones(num_samples, dtype=torch.int64, device=device) * (t + 2)
                             noise_prev_pred = local_prior(x=x_noisy, t=t_prev_tensor.float(), 
                                                         condition_input=condition_input, clip_feat=clip_feat)
@@ -240,13 +241,13 @@ class LION(object):
 
                             # Lấy điểm neo và mục tiêu
                             
-                            anchor_points = [torch.tensor([0., 0., 0.]).to(x_noisy.device)]
-                            target_points = [torch.tensor([0., 1., 0.]).to(x_noisy.device)]
+                            anchor_points = [torch.tensor([-2.58, -0.08, 0.58]).to(x_noisy.device)]
+                            target_points = [torch.tensor([-2.58, 0.5, 0.58]).to(x_noisy.device)]
                             points = x_noisy.reshape((-1, 4))[:, :3]
 
                             
                             #anchor_points = [points[i] for i in anchor_points_index_list]
-                            _, mask_list = get_handle_points(anchor_points, points, 0.5)
+                            _, mask_list = get_handle_points(anchor_points, points, 1)
                             #_, mask_list = get_k_nearest_points(anchor_points, points, 100)
                             # print(f"Anchor points: {anchor_points}, Target points: {target_points}")
                             for j in range(len(anchor_points)):
@@ -314,6 +315,7 @@ class LION(object):
             
             # decode the latent
             output = self.vae.sample(num_samples=num_samples, decomposed_eps=sampled_list)
+            
             if save_img:
                 out_name = plot_points(output, "/tmp/tmp.png")
                 print(f'INFO save plot image at {out_name}')
