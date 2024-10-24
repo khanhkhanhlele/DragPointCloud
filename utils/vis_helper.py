@@ -31,11 +31,11 @@ def plot_points(output, output_name=None):
     input_list = np.concatenate(input_list, axis=2)
     img = Image.fromarray(input_list[:3].astype(np.uint8).transpose((1, 2, 0)))
     if output_name is None:
-        output_dir = './results/nv_demos/lion/'
+        output_dir = './results'
         os.makedirs(output_dir, exist_ok=True)
         output_name = os.path.join(output_dir, datetime.now().strftime("%y%m%d_%H%M%S.png"))
     img.save(output_name)
-    # print(f'INFO save output img as {output_name}')
+    print(f'INFO save output img as {output_name}')
     return output_name
 
 def visualize_point_clouds_3d_list(pcl_lst, title_lst, vis_order, vis_2D, bound, S):
@@ -47,6 +47,15 @@ def visualize_point_clouds_3d_list(pcl_lst, title_lst, vis_order, vis_2D, bound,
     img = np.concatenate(t_list, axis=2)
     return img
 
+def visualize_inverse_list(pcl_lst, title_lst, vis_order, vis_2D, bound, S):
+    t_list = []
+    for i in range(len(pcl_lst)):
+        pc = pcl_lst[i]
+        img = visualize_point_clouds_3d([pc], [title_lst[i]] if title_lst is not None else None,
+                                vis_order, vis_2D, bound, S)
+        t_list.append(img)
+    img = np.concatenate(t_list, axis=2)
+    return img
 
 def visualize_point_clouds_3d(pcl_lst, title_lst=None,
                               vis_order=[2, 0, 1], vis_2D=1, bound=1.5, S=3, rgba=0):

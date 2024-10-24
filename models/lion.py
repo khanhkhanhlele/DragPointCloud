@@ -10,9 +10,12 @@ from models.latent_points_ada_localprior import PVCNN2Prior as LocalPrior
 from utils.diffusion_pvd import DiffusionDiscretized
 from utils.vis_helper import plot_points
 from utils.model_helper import import_model
-from diffusers import DDPMScheduler
+from diffusers import DDPMScheduler, DDIMScheduler
 import torch
 from matplotlib import pyplot as plt
+import pdb
+
+## GOBAL: latent points, LOCAL: latent shape
 
 class LION(object):
     def __init__(self, cfg):
@@ -21,9 +24,16 @@ class LION(object):
         global_prior = GlobalPrior(cfg.sde, cfg.latent_pts.style_dim, cfg).cuda()
         local_prior = LocalPrior(cfg.sde, cfg.shapelatent.latent_dim, cfg).cuda()
         self.priors = torch.nn.ModuleList([global_prior, local_prior])
-        self.scheduler = DDPMScheduler(clip_sample=False,
-                                       beta_start=cfg.ddpm.beta_1, beta_end=cfg.ddpm.beta_T, beta_schedule=cfg.ddpm.sched_mode,
-                                       num_train_timesteps=cfg.ddpm.num_steps, variance_type=cfg.ddpm.model_var_type)
+        # self.scheduler = DDPMScheduler(clip_sample=False,
+        #                                beta_start=cfg.ddpm.beta_1, beta_end=cfg.ddpm.beta_T, beta_schedule=cfg.ddpm.sched_mode,
+        #                                num_train_timesteps=cfg.ddpm.num_steps, variance_type=cfg.ddpm.model_var_type)
+        self.scheduler = DDIMScheduler(
+            clip_sample=False,
+            beta_start=cfg.ddpm.beta_1,
+            beta_end=cfg.ddpm.beta_T,
+            beta_schedule=cfg.ddpm.sched_mode,
+            num_train_timesteps=cfg.ddpm.num_steps
+        )
         self.diffusion = DiffusionDiscretized(None, None, cfg)
         # self.load_model(cfg)
 
@@ -36,7 +46,8 @@ class LION(object):
 
     @torch.no_grad()
     def sample(self, num_samples=10, clip_feat=None, save_img=False):
-        self.scheduler.set_timesteps(1000, device='cuda')
+        # self.scheduler.set_timesteps(1000, device='cuda')
+        self.scheduler.set_timesteps(50, device='cuda')
         timesteps = self.scheduler.timesteps
         latent_shape = self.vae.latent_shape()
         global_prior, local_prior = self.priors[0], self.priors[1]
@@ -63,14 +74,19 @@ class LION(object):
         x_T_shape = [num_samples] + latent_shape[1]
         x_noisy = torch.randn(size=x_T_shape, device='cuda')
 
+        all = []
+
         for i, t in enumerate(timesteps):
             t_tensor = torch.ones(num_samples, dtype=torch.int64, device='cuda') * (t+1)
             noise_pred = local_prior(x=x_noisy, t=t_tensor.float(), 
                     condition_input=condition_input, clip_feat=clip_feat)
             x_noisy = self.scheduler.step(noise_pred, t, x_noisy).prev_sample
+            all.append(x_noisy)
+        torch.save(all, 'all_tensor_list.pt')
+        print("Saved sampled_list to latents.npz")
         sampled_list.append(x_noisy)
         output_dict['z_local'] = x_noisy
-
+        
         # decode the latent
         output = self.vae.sample(num_samples=num_samples, decomposed_eps=sampled_list)
         if save_img:

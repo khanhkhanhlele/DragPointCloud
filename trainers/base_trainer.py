@@ -180,8 +180,8 @@ class BaseTrainer(ABC):
         step = 0
         if args.global_rank == 0:
             tic_log = time.time()
-        self.num_total_iter = cfg.trainer.epochs * len(train_loader)
-        self.model.num_total_iter = self.num_total_iter
+         = cfg.trainer.epochs * len(train_loader)
+        self.model.num_totself.num_total_iteral_iter = self.num_total_iter
 
         for epoch in range(self.start_epoch, cfg.trainer.epochs):
             self.cur_epoch = epoch

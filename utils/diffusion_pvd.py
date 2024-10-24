@@ -166,59 +166,6 @@ class DiffusionDiscretized(object):
             return None
         else:
             raise ValueError('Unknown stddev_type: {}'.format(stddev_type))
-    # @torch.no_grad()
-    # def debug_run_denoising_diffusion(self, model, num_samples, shape, x_noisy, timestep,
-    #        temp=1.0, enable_autocast=False, is_image=False, prior_var=1.0,
-    #        condition_input=None):
-    #    """
-    #    Run the full denoising sampling loop.
-    #    """
-    #    # set model to eval mode
-    #    # initialize sample
-    #    #x_noisy_size = [num_samples] + shape
-    #    #x_noisy = torch.randn(size=x_noisy_size, device='cuda') ## * np.sqrt(prior_var) * temp
-    #    model.eval()
-    #    x_noisy_size = x_noisy.shape
-
-    #    x_noisy = x_noisy[0:1].expand(x_noisy.shape[0],-1,-1,-1) #
-    #    timestep_start = timestep[0].item()
-    #    output_list = []
-    #    output_pred_list = []
-    #    logger.info('timestep_start: {}', timestep_start)
-    #    # denoising loop
-    #    for t in reversed(range(0, self._diffusion_steps)):
-    #        if t > timestep_start:
-    #            continue
-    #        if t % 100 == 0:
-    #            logger.info('t={}', t)
-    #        timestep = torch.ones(num_samples, dtype=torch.int64, device='cuda') * (t+1)  # the model uses (1 ... T) without 0
-    #        fixed_log_scales = self.get_p_log_scales(timestep=timestep, stddev_type=self._denoising_stddevs)
-    #        mixing_component = self.get_mixing_component(x_noisy, timestep, enabled=model.mixed_prediction)
-
-    #        # run model
-    #        with autocast(enable_autocast):
-    #            pred_logits = model(x=x_noisy, t=timestep.float() , condition_input=condition_input)
-    #            # pred_logits = model(x_noisy, timestep.float() / self._diffusion_steps)
-    #            logits = utils.get_mixed_prediction(model.mixed_prediction, pred_logits, model.mixing_logit, mixing_component)
-
-    #        output_dist = utils.decoder_output('place_holder', logits, fixed_log_scales=fixed_log_scales)
-    #        noise = torch.randn(size=x_noisy_size, device='cuda')
-    #        mean = self.get_q_posterior_mean(x_noisy, output_dist.means, t)
-
-    #        _, var_t_p, m_t_p, _, _, _ = self.iw_quantities_t(
-    #                num_samples, timestep)
-    #        pred_eps_t0 = (x_noisy - torch.sqrt(var_t_p) * pred_logits) / m_t_p
-    #        if t == 0:
-    #            x_image = mean
-    #        else:
-    #            x_noisy = mean + torch.exp(output_dist.log_scales) * noise * temp
-    #        output_list.append(x_noisy)
-    #        output_pred_list.append(pred_eps_t0)
-    #    if is_image:
-    #        x_image = x_image.clamp(min=-1., max=1.)
-    #        x_image = utils.unsymmetrize_image_data(x_image)
-    #    model.train()
-    #    return x_image, output_list, output_pred_list
 
     @torch.no_grad()
     def run_denoising_diffusion(self, model, num_samples, shape, temp=1.0,
@@ -426,8 +373,7 @@ class DiffusionDiscretized(object):
         Alpha_bar = self._alpha_bars  # self.var_sched.alphas_cumprod
         # the following computation is the same as the function in https://github.com/ermongroup/ddim/blob/51cb290f83049e5381b09a4cc0389f16a4a02cc9/functions/denoising.py#L10
         for i, t in enumerate(user_defined_steps):
-            if i % 500 == 0:
-                logger.info('t={} / {}, ori={}', i, S, self._diffusion_steps)
+            logger.info('t={} / {}, ori={}', i, S, self._diffusion_steps)
             tau = t
             # the model uses (1 ... T) without 0
             timestep = torch.ones(
@@ -471,6 +417,32 @@ class DiffusionDiscretized(object):
         #     x_image = utils.unsymmetrize_image_data(x_image)
         model.train()
         return x_noisy, output_list
+
+    def ddim_step(self, model_output, timestep, x, ddim_step):
+        '''
+        model_output: epsilon_theta
+        x: latent at timestep   
+        '''
+        prev_timestep = self._diffusion_steps // ddim_step
+        alpha_prod_t = self._alpha_bars[time_step]
+        alpha_prod_t_prev = self._alpha_bars[prev_timestep]
+        beta_prod_t = 1 - alpha_prod_t
+        pred_x0 = (x - beta_prod_t**0.5 * model_output) / alpha_prod_t**0.5
+        pred_dir = (1 - alpha_prod_t_prev)**0.5 * model_output
+        x_prev = alpha_prod_t_prev**0.5 * pred_x0 + pred_dir
+        return x_prev, pred_x0
+
+    def ddim_inverse(self, model_output, timestep, x):
+        next_step = time_step 
+        time_step = min(time_step - self._diffusion_steps // ddim_step, 999)
+        alpha_prod_t = self._alpha_bars[time_step]
+        alpha_prod_t_next = self._alpha_bars[next_step]
+        beta_prod_t = 1 - alpha_prod_t
+        pred_x0 = (x - beta_prod_t**0.5 * model_output) / alpha_prod_t**0.5
+        pred_dir = (1 - alpha_prod_t_next)**0.5 * model_output
+        x_next = alpha_prod_t_next**0.5 * pred_x0 + pred_dir
+        return x_next, pred_x0
+
 
     def get_q_posterior_mean(self, x_noisy, prediction, t):
         # last step works differently (for better FIDs we NEVER sample in last conditional images output!)

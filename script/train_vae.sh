@@ -6,7 +6,7 @@ fi
 DATA=" ddpm.input_dim 3 data.cates car "
 NGPU=$1 # 
 num_node=1
-BS=32 
+BS=32
 total_bs=$(( $NGPU * $BS ))
 if (( $total_bs > 128 )); then 
     echo "[WARNING] total batch_size larger than 128 may lead to unstable training, please reduce the size"
@@ -21,7 +21,7 @@ skip_weight=0.01
 sigma_offset=6.0
 loss='l1_sum'
 
-$ENT ddpm.num_steps 1 ddpm.ema 0 \
+$ENT ddpm.num_steps 1000 ddpm.ema 0 \
     trainer.opt.vae_lr_warmup_epochs 0 \
     latent_pts.ada_mlp_init_scale 0.1 \
     sde.kl_const_coeff_vada 1e-7 \

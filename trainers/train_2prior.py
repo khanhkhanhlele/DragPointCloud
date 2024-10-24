@@ -25,7 +25,7 @@ import torch.distributed as dist
 from torch import optim
 from utils.ema import EMA
 from utils.model_helper import import_model, loss_fn
-from utils.vis_helper import visualize_point_clouds_3d
+from utils.vis_helper import visualize_point_clouds_3d, plot_points
 from utils.eval_helper import compute_NLL_metric 
 from utils import model_helper, exp_helper, data_helper
 from utils.data_helper import normalize_point_clouds

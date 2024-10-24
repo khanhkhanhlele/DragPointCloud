@@ -299,7 +299,7 @@ cfg.viz.viz_freq = 400
 cfg.viz.save_freq = 200
 cfg.viz.val_freq = -1
 cfg.viz.viz_order = [2, 0, 1]
-cfg.viz.vis_sample_ddim_step = 0
+cfg.viz.vis_sample_ddim_step = 200
 
 cfg.trainer = CN()
 # when loss 1 is weighted, also weight the kl terms
@@ -351,7 +351,7 @@ cfg.voxel2pts.diffusion_steps = [0]
 cfg.dpm = CN()
 cfg.dpm.train_encoder_only = 0
 cfg.num_ref = 0  # manully set the number of reference
-cfg.eval_ddim_step = 0  # ddim sampling for the model evaluation
+cfg.eval_ddim_step = 200  # ddim sampling for the model evaluation
 cfg.model_config = ''  # used for model control, without ading new flag
 
 ## --- depreciated --- #

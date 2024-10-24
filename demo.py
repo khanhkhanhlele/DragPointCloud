@@ -14,7 +14,7 @@ import clip
 import torch
 from PIL import Image
 from default_config import cfg as config
-from models.lion import LION
+from models.drag_point_utils_v1 import LION
 from utils.vis_helper import plot_points
 from huggingface_hub import hf_hub_download 
 
@@ -39,7 +39,7 @@ else:
     clip_feat = None
 output = lion.sample(1 if clip_feat is None else clip_feat.shape[0], clip_feat=clip_feat)
 pts = output['points']
-img_name = "/tmp/tmp.png"
-plot_points(pts, output_name=img_name)
-img = Image.open(img_name)
-img.show()
+torch.save(pts, 'point_cloud_move.pt')
+plot_points(pts)
+# img = Image.open(img_name)
+# img.show()

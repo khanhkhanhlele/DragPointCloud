@@ -413,6 +413,7 @@ if __name__ == "__main__":
        raise ValueError 
 
     pathToFile = sys.argv[1]
+    file_name = sys.argv[2]
 
 
-    main(pathToFile)
+    pts2png(pathToFile, file_name)

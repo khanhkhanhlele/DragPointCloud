@@ -95,6 +95,7 @@ class Model(nn.Module):
             return all_eps, all_log_q, latent_list
 
     def compose_eps(self, all_eps):
+        
         return torch.cat(all_eps, dim=1) #  style: [B,D1], latent pts: [B,ND2]
 
     def decompose_eps(self, all_eps):
