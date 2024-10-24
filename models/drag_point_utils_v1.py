@@ -259,7 +259,7 @@ class LION(object):
 
                         
                         anchor_points = [points[i] for i in anchor_points_index_list]
-                        _, mask_list = get_handle_points(anchor_points, points, 0.5)
+                        # _, mask_list = get_handle_points(anchor_points, points, 0.5)
                         # _, mask_list = get_k_nearest_points(anchor_points, points, 100)
                         # mask_list = get_mask_from_index(list_handle_index, points)
                         print(f"Anchor points: {anchor_points}, Target points: {target_points}")
