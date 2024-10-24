@@ -157,15 +157,15 @@ class LION(object):
 
         #Prepare anchor point list
 
-        anchor_points_user = [torch.tensor([1.8, -0.24, 0.22]).to('cuda')]
-        target_points = [torch.tensor([2., -0.18, 0.22]).to('cuda')]
+        anchor_points_user = [torch.tensor([-1, 2, 0]).to('cuda')]
+        target_points = [torch.tensor([-1.3, 2.1, 0]).to('cuda')]
 
         #ddim inverse
         
         with torch.no_grad():
-            # point_cloud = torch.load('point_cloud_no_drag.pt')
-            point_cloud = torch.load('lion_ckpt/unconditional/airplane/samples.pt').to('cuda')
-            point_cloud = point_cloud[6].unsqueeze(0).to('cuda')
+            point_cloud = torch.load('point_cloud_no_drag.pt')
+            # point_cloud = torch.load('lion_ckpt/samples_for_paper_table/table_3/lion/chair/samples_707999s1Ha5846diet.pt').to('cuda')
+            # point_cloud = point_cloud[6].unsqueeze(0).to('cuda')
             anchor_points_index_list = get_index_nearest_anchor(anchor_points_user, point_cloud, 0.5)
             # import pdb; pdb.set_trace()
             anchor_points = [point_cloud[0][i] for i in anchor_points_index_list]
