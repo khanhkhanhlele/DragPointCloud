@@ -32,6 +32,10 @@ def get_k_nearest_points(anchor_points, points, k):
 
     return handle_points_list, mask_list
 
+def get_mask_from_index(index, points):
+    mask = torch.zeros(points.shape[0], dtype=torch.bool)
+    mask[index] = True
+    return mask
 
 def get_index_nearest_anchor(anchor_points_user, points, r):
     list_index = []
@@ -41,7 +45,7 @@ def get_index_nearest_anchor(anchor_points_user, points, r):
         index = torch.argmin(dis)
         list_index.append(index)
     return list_index
-        
+
 
 
 def check_anchor_reach_target(anchor_points, target_points, thres):
@@ -157,8 +161,8 @@ class LION(object):
 
         #Prepare anchor point list
 
-        anchor_points_user = [torch.tensor([-1, 2, 0]).to('cuda')]
-        target_points = [torch.tensor([-1.3, 2.1, 0]).to('cuda')]
+        anchor_points_user = [torch.tensor([-0.9, 1.5, 0.3]).to('cuda')]
+        target_points = [torch.tensor([-1.5, 1.5, 0.3]).to('cuda')]
 
         #ddim inverse
         
@@ -169,6 +173,7 @@ class LION(object):
             anchor_points_index_list = get_index_nearest_anchor(anchor_points_user, point_cloud, 0.5)
             # import pdb; pdb.set_trace()
             anchor_points = [point_cloud[0][i] for i in anchor_points_index_list]
+            mask_list = get_handle_points(anchor_points, point_cloud[0], 0.5)[1]
             print(f"User anchor points: {anchor_points_user}")
             print(f"Anchor points: {anchor_points}")
             _, _, latent_list = self.vae.encode(point_cloud)
@@ -211,7 +216,7 @@ class LION(object):
         optimizer = torch.optim.Adam([x_noisy_0], lr=0.05)
         scaler = torch.cuda.amp.GradScaler()
 
-        for e in range(15):  # epoch loop
+        for e in range(12):  # epoch loop
             optimizer.zero_grad()  
             all = []
             loss = torch.tensor(0.0, device=x_noisy_0.device, requires_grad=False)  # Tích lũy loss cho toàn bộ các bước
@@ -231,7 +236,7 @@ class LION(object):
                         x_noisy = self.scheduler.step(noise_pred, t, x_noisy).prev_sample
 
                     # Start calculating loss from step 44
-                    if i >= 44:
+                    if i >= 40:
                         
                         
                         t_prev_tensor = torch.ones(num_samples, dtype=torch.int64, device='cuda') * (t + 2)
@@ -251,7 +256,8 @@ class LION(object):
                         
                         anchor_points = [points[i] for i in anchor_points_index_list]
                         _, mask_list = get_handle_points(anchor_points, points, 0.5)
-                        #_, mask_list = get_k_nearest_points(anchor_points, points, 100)
+                        # _, mask_list = get_k_nearest_points(anchor_points, points, 100)
+                        # mask_list = get_mask_from_index(list_handle_index, points)
                         print(f"Anchor points: {anchor_points}, Target points: {target_points}")
                         for j in range(len(anchor_points)):
                             anchor, target = anchor_points[j], target_points[j]
@@ -268,21 +274,24 @@ class LION(object):
                             # anchor_points[j] = anchor + d / torch.tensor(60.)
                             
                             d = d.repeat(points.shape[0], 1)
-                            loss2 = F.mse_loss(v[~mask], torch.zeros_like(v[~mask]))
+                            # loss2 = F.mse_loss(v[~mask], torch.zeros_like(v[~mask]))
                             # print(f"loss1: {loss} \t Loss2: {loss2}")
                             v_gt = memory_bank[i-1]
-                            loss1 = F.mse_loss(v[mask], d[mask])
+                            # loss1 = F.mse_loss(v[mask], d[mask])
                             loss2 = nn.CosineEmbeddingLoss()(v[mask], d[mask], torch.ones(v[mask].size(0), device=v.device))
                             
-                            loss4 = F.mse_loss(v[~mask], torch.zeros_like(v[~mask]))
+                            loss3_term1 = F.mse_loss(target, anchor)
+
+                            # loss4 = F.mse_loss(v[~mask], torch.zeros_like(v[~mask]))
                             loss5 = F.mse_loss(v[~mask], v_gt[~mask])
-                            loss6 = F.l1_loss(10*torch.norm(v[mask],dim=1), torch.norm(d[mask], dim=1))
-                            print(f"loss1: {loss1} \t loss2: {loss2} \t loss4: {loss4} \t loss5: {loss5} \t loss6: {loss6}")
-                            loss = loss +  loss2# + loss6
-                            print(f"loss: {loss}")
+                            # loss6 = F.l1_loss(10*torch.norm(v[mask],dim=1), torch.norm(d[mask], dim=1))
+                            # print(f"loss1: {loss1} \t loss2: {loss2} \t loss4: {loss4} \t loss5: {loss5} \t loss6: {loss6}")
+                            # loss = loss +  loss2# + loss6
+                            loss = loss + loss2 
                     all.append(x_noisy)
 
-            print(loss)
+            loss = loss / 10.
+            print(f"loss: {loss}")
             scaler.scale(loss).backward(retain_graph=True)
             scaler.step(optimizer)
             scaler.update()
